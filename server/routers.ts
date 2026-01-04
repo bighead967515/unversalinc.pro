@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { createCheckoutSession } from "./stripe";
 import { PRODUCTS } from "./products";
+import { getTierLimits, canUploadMorePhotos } from "@shared/tierLimits";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -110,7 +111,20 @@ export const appRouter = router({
         caption: z.string().optional(),
         style: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Check if the user owns this artist profile
+        const artist = await db.getArtistById(input.artistId);
+        if (!artist || artist.userId !== ctx.user.id) {
+          throw new Error("You can only manage your own portfolio");
+        }
+
+        // Check tier limits
+        const currentPortfolio = await db.getPortfolioByArtistId(input.artistId);
+        if (!canUploadMorePhotos(artist.subscriptionTier as "free" | "premium", currentPortfolio.length)) {
+          const limits = getTierLimits(artist.subscriptionTier as "free" | "premium");
+          throw new Error(`Free tier artists can only upload ${limits.portfolioPhotos} portfolio photos. Upgrade to premium for unlimited uploads.`);
+        }
+
         return await db.addPortfolioImage(input);
       }),
     
@@ -139,6 +153,35 @@ export const appRouter = router({
           ...input,
           userId: ctx.user.id,
         });
+      }),
+
+    respond: protectedProcedure
+      .input(z.object({
+        reviewId: z.number(),
+        response: z.string().min(1).max(1000),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if user is an artist and owns this review
+        const artist = await db.getArtistByUserId(ctx.user.id);
+        if (!artist) {
+          throw new Error("Only artists can respond to reviews");
+        }
+
+        // Check if artist can respond to reviews (premium feature)
+        if (!getTierLimits(artist.subscriptionTier as "free" | "premium").canRespondToReviews) {
+          throw new Error("Review responses are only available for premium artists");
+        }
+
+        const review = await db.getReviewById(input.reviewId);
+        if (!review) {
+          throw new Error("Review not found");
+        }
+
+        if (review.artistId !== artist.id) {
+          throw new Error("You can only respond to reviews for your own shop");
+        }
+
+        return await db.respondToReview(input.reviewId, input.response);
       }),
   }),
 
@@ -240,6 +283,63 @@ export const appRouter = router({
         });
 
         return { url: session.url };
+      }),
+  }),
+
+  subscriptions: router({
+    create: protectedProcedure
+      .input(z.object({
+        priceId: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if user is an artist
+        const artist = await db.getArtistByUserId(ctx.user.id);
+        if (!artist) {
+          throw new Error("Only artists can subscribe");
+        }
+
+        // Create Stripe subscription
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price: input.priceId,
+              quantity: 1,
+            },
+          ],
+          mode: "subscription",
+          customer_email: ctx.user.email || undefined,
+          metadata: {
+            userId: ctx.user.id.toString(),
+            artistId: artist.id.toString(),
+          },
+          success_url: `${process.env.VITE_APP_URL || 'http://localhost:3000'}/dashboard?success=true`,
+          cancel_url: `${process.env.VITE_APP_URL || 'http://localhost:3000'}/pricing?canceled=true`,
+          allow_promotion_codes: true,
+        });
+
+        return { url: session.url };
+      }),
+
+    cancel: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        // Check if user is an artist
+        const artist = await db.getArtistByUserId(ctx.user.id);
+        if (!artist) {
+          throw new Error("Only artists can cancel subscriptions");
+        }
+
+        if (artist.subscriptionTier === 'free') {
+          throw new Error("No active subscription to cancel");
+        }
+
+        // In a real implementation, you'd cancel the Stripe subscription
+        // For now, we'll just update the database
+        await db.updateArtist(artist.id, {
+          subscriptionTier: 'free',
+        });
+
+        return { success: true };
       }),
   }),
 });

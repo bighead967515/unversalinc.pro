@@ -1,6 +1,7 @@
-import { eq, desc, and, sql, or, gte } from "drizzle-orm";
+import { eq, desc, and, sql, or, gte, isNotNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, artists, portfolioImages, reviews, bookings, favorites, InsertArtist, InsertPortfolioImage, InsertReview, InsertBooking, InsertFavorite } from "../drizzle/schema";
+import { ArtistWithPortfolioCount } from "../shared/types";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -98,12 +99,27 @@ export async function createArtist(artist: InsertArtist) {
   return result;
 }
 
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
 export async function getArtistByUserId(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
   
-  const result = await db.select().from(artists).where(eq(artists.userId, userId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const artist = await db.select().from(artists).where(eq(artists.userId, userId)).limit(1);
+  if (artist.length === 0) return undefined;
+  
+  const portfolioCount = await db.$count(portfolioImages, eq(portfolioImages.artistId, artist[0].id));
+  
+  return {
+    ...artist[0],
+    portfolioCount
+  };
 }
 
 export async function getArtistById(id: number) {
@@ -323,4 +339,42 @@ export async function isFavorite(userId: number, artistId: number) {
   
   const result = await db.select().from(favorites).where(and(eq(favorites.userId, userId), eq(favorites.artistId, artistId))).limit(1);
   return result.length > 0;
+}
+
+export async function getAllArtistEmails() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const result = await db.select({
+    id: artists.id,
+    shopName: artists.shopName,
+    email: users.email,
+    subscriptionTier: artists.subscriptionTier,
+  })
+  .from(artists)
+  .leftJoin(users, eq(artists.userId, users.id))
+  .where(and(
+    isNotNull(users.email),
+    eq(artists.isApproved, 1)
+  ));
+  
+  return result;
+}
+
+export async function getReviewById(reviewId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(reviews).where(eq(reviews.id, reviewId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function respondToReview(reviewId: number, response: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.update(reviews).set({
+    artistResponse: response,
+    artistResponseDate: new Date(),
+  }).where(eq(reviews.id, reviewId));
 }

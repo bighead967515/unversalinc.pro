@@ -1,7 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, ThumbsUp, CheckCircle, MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { getTierLimits } from "@shared/tierLimits";
 
 interface ReviewCardProps {
   review: {
@@ -17,11 +22,28 @@ interface ReviewCardProps {
     artistResponseDate?: Date | null;
   };
   onHelpfulClick?: (reviewId: number) => void;
+  artistTier?: "free" | "premium";
+  isArtistOwner?: boolean;
 }
 
-export default function ReviewCard({ review, onHelpfulClick }: ReviewCardProps) {
+export default function ReviewCard({ review, onHelpfulClick, artistTier, isArtistOwner }: ReviewCardProps) {
   const [hasVoted, setHasVoted] = useState(false);
+  const [showResponseForm, setShowResponseForm] = useState(false);
+  const [responseText, setResponseText] = useState("");
+  const { user } = useAuth();
   const photos = review.photos ? review.photos.split(",").filter(Boolean) : [];
+
+  const respondMutation = trpc.reviews.respond.useMutation({
+    onSuccess: () => {
+      toast.success("Response submitted!");
+      setShowResponseForm(false);
+      setResponseText("");
+      // The review will be refetched by the parent component
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const handleHelpfulClick = () => {
     if (!hasVoted && onHelpfulClick) {
@@ -29,6 +51,16 @@ export default function ReviewCard({ review, onHelpfulClick }: ReviewCardProps) 
       setHasVoted(true);
     }
   };
+
+  const handleSubmitResponse = () => {
+    if (!responseText.trim()) return;
+    respondMutation.mutate({
+      reviewId: review.id,
+      response: responseText.trim(),
+    });
+  };
+
+  const canRespond = isArtistOwner && getTierLimits(artistTier || "free").canRespondToReviews && !review.artistResponse;
 
   return (
     <Card className="p-6">
@@ -87,8 +119,8 @@ export default function ReviewCard({ review, onHelpfulClick }: ReviewCardProps) 
         </div>
       )}
 
-      {/* Helpful Button */}
-      <div className="flex items-center gap-4 pt-3 border-t">
+      {/* Helpful Button and Response Button */}
+      <div className="flex items-center justify-between pt-3 border-t">
         <Button
           variant="ghost"
           size="sm"
@@ -99,7 +131,51 @@ export default function ReviewCard({ review, onHelpfulClick }: ReviewCardProps) 
           <ThumbsUp className={`w-4 h-4 mr-1 ${hasVoted ? "fill-primary" : ""}`} />
           Helpful {review.helpfulVotes ? `(${review.helpfulVotes})` : ""}
         </Button>
+
+        {canRespond && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowResponseForm(!showResponseForm)}
+          >
+            <MessageSquare className="w-4 h-4 mr-1" />
+            Respond
+          </Button>
+        )}
       </div>
+
+      {/* Response Form */}
+      {showResponseForm && (
+        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+          <p className="text-sm font-semibold mb-2">Respond to this review</p>
+          <Textarea
+            value={responseText}
+            onChange={(e) => setResponseText(e.target.value)}
+            placeholder="Write your response..."
+            rows={3}
+            className="mb-2"
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleSubmitResponse}
+              disabled={!responseText.trim() || respondMutation.isPending}
+            >
+              {respondMutation.isPending ? "Submitting..." : "Submit Response"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowResponseForm(false);
+                setResponseText("");
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Artist Response */}
       {review.artistResponse && (

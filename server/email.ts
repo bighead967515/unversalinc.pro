@@ -200,3 +200,202 @@ export async function sendBookingConfirmation(
     html,
   });
 }
+
+/**
+ * Send payment receipt email for booking deposits
+ */
+export async function sendBookingPaymentReceipt(
+  to: string,
+  receiptDetails: {
+    customerName: string;
+    artistName: string;
+    shopName: string;
+    appointmentDate: string;
+    amount: number;
+    transactionId: string;
+    paymentDate: string;
+  }
+) {
+  const { customerName, artistName, shopName, appointmentDate, amount, transactionId, paymentDate } = receiptDetails;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #8b5cf6, #10b981); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+    .receipt-box { background: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; border: 1px solid #e5e7eb; }
+    .receipt-row { display: flex; justify-content: space-between; margin: 8px 0; }
+    .receipt-total { border-top: 2px solid #8b5cf6; padding-top: 10px; margin-top: 10px; font-weight: bold; color: #8b5cf6; }
+    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💳 Payment Receipt</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      
+      <p>Thank you for your payment! Your booking deposit has been successfully processed.</p>
+      
+      <div class="receipt-box">
+        <h3>Receipt Details</h3>
+        <div class="receipt-row">
+          <span>Artist:</span>
+          <span>${artistName}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Shop:</span>
+          <span>${shopName}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Appointment:</span>
+          <span>${appointmentDate}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Payment Date:</span>
+          <span>${paymentDate}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Transaction ID:</span>
+          <span>${transactionId}</span>
+        </div>
+        <div class="receipt-row receipt-total">
+          <span>Total Paid:</span>
+          <span>$${amount.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <p><strong>What's Next:</strong></p>
+      <ul>
+        <li>You'll receive a booking confirmation email with appointment details</li>
+        <li>Any remaining balance will be collected at the time of your appointment</li>
+        <li>You can contact the shop directly if you need to reschedule</li>
+      </ul>
+      
+      <p>If you have any questions about this payment, please don't hesitate to contact us.</p>
+      
+      <p>Thank you for choosing Universal Inc!<br>
+      <strong>The Universal Inc Team</strong></p>
+    </div>
+    <div class="footer">
+      <p>Universal Inc - Your Tattoo Journey Starts Here</p>
+      <p>This is an automated receipt. Please keep this email for your records.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Payment Receipt - Booking with ${artistName}`,
+    html,
+  });
+}
+
+/**
+ * Send subscription payment receipt email
+ */
+export async function sendSubscriptionPaymentReceipt(
+  to: string,
+  receiptDetails: {
+    artistName: string;
+    planName: string;
+    amount: number;
+    transactionId: string;
+    paymentDate: string;
+    nextBillingDate?: string;
+  }
+) {
+  const { artistName, planName, amount, transactionId, paymentDate, nextBillingDate } = receiptDetails;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #8b5cf6, #10b981); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+    .receipt-box { background: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; border: 1px solid #e5e7eb; }
+    .receipt-row { display: flex; justify-content: space-between; margin: 8px 0; }
+    .receipt-total { border-top: 2px solid #8b5cf6; padding-top: 10px; margin-top: 10px; font-weight: bold; color: #8b5cf6; }
+    .success-badge { background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; margin: 10px 0; }
+    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 Welcome to Premium!</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${artistName},</p>
+      
+      <p><span class="success-badge">✅ Payment Successful</span></p>
+      
+      <p>Thank you for upgrading to Universal Inc Premium! Your subscription payment has been processed successfully.</p>
+      
+      <div class="receipt-box">
+        <h3>Subscription Details</h3>
+        <div class="receipt-row">
+          <span>Plan:</span>
+          <span>${planName}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Payment Date:</span>
+          <span>${paymentDate}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Transaction ID:</span>
+          <span>${transactionId}</span>
+        </div>
+        ${nextBillingDate ? `<div class="receipt-row">
+          <span>Next Billing Date:</span>
+          <span>${nextBillingDate}</span>
+        </div>` : ''}
+        <div class="receipt-row receipt-total">
+          <span>Amount Paid:</span>
+          <span>$${amount.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <p><strong>Your Premium Features Are Now Active:</strong></p>
+      <ul>
+        <li>✅ Unlimited portfolio photos & videos</li>
+        <li>✅ Real-time booking system</li>
+        <li>✅ Direct customer contact information</li>
+        <li>✅ Featured artist placement</li>
+        <li>✅ Review response capability</li>
+        <li>✅ Advanced analytics dashboard</li>
+      </ul>
+      
+      <p>You can manage your subscription and billing information from your dashboard anytime.</p>
+      
+      <p>Welcome to the Universal Inc Premium community!<br>
+      <strong>The Universal Inc Team</strong></p>
+    </div>
+    <div class="footer">
+      <p>Universal Inc - Professional Tattoo Artist Network</p>
+      <p>This is an automated receipt. Please keep this email for your records.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Welcome to Universal Inc Premium - Payment Receipt`,
+    html,
+  });
+}

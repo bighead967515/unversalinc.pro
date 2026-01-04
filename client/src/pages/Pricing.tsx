@@ -3,8 +3,37 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, X, Crown, Zap } from "lucide-react";
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 export default function Pricing() {
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const createSubscriptionMutation = trpc.subscriptions.create.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleUpgrade = (priceId: string) => {
+    if (!isAuthenticated) {
+      setLocation("/login");
+      return;
+    }
+
+    if (!priceId) {
+      toast.error("Subscription pricing not configured yet");
+      return;
+    }
+
+    createSubscriptionMutation.mutate({ priceId });
+  };
   const features = [
     {
       name: "Portfolio Photos",
@@ -120,9 +149,13 @@ export default function Pricing() {
                 </p>
               </div>
 
-              <Button className="w-full mb-8 group">
+              <Button 
+                className="w-full mb-8 group"
+                onClick={() => handleUpgrade(process.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID || "")}
+                disabled={createSubscriptionMutation.isPending}
+              >
                 <Zap className="h-4 w-4 mr-2 group-hover:animate-pulse" />
-                Upgrade to Premium
+                {createSubscriptionMutation.isPending ? "Processing..." : "Upgrade to Premium"}
               </Button>
 
               <div className="space-y-4">
@@ -181,9 +214,14 @@ export default function Pricing() {
                   Start Free
                 </Button>
               </Link>
-              <Button size="lg" className="group">
+              <Button 
+                size="lg" 
+                className="group"
+                onClick={() => handleUpgrade(process.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID || "")}
+                disabled={createSubscriptionMutation.isPending}
+              >
                 <Crown className="h-5 w-5 mr-2 group-hover:animate-pulse" />
-                Upgrade to Premium
+                {createSubscriptionMutation.isPending ? "Processing..." : "Upgrade to Premium"}
               </Button>
             </div>
           </div>

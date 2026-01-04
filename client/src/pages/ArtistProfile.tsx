@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Star, MapPin, Phone, Globe, Instagram, Facebook, Heart, Calendar, Upload } from "lucide-react";
+import { Star, MapPin, Phone, Globe, Instagram, Facebook, Heart, Calendar, Upload, Crown } from "lucide-react";
 import { toast } from "sonner";
 import BookingDialog from "@/components/BookingDialog";
 import ReviewCard from "@/components/ReviewCard";
 import ReviewFilters from "@/components/ReviewFilters";
+import UpgradePrompt from "@/components/UpgradePrompt";
+import { getTierLimits } from "@shared/tierLimits";
 
 export default function ArtistProfile() {
   const { id } = useParams();
@@ -128,7 +130,15 @@ export default function ArtistProfile() {
         <div className="container">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-4">{artist.shopName}</h1>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-4xl font-bold">{artist.shopName}</h1>
+                {getTierLimits(artist.subscriptionTier as "free" | "premium").isFeatured && (
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-primary to-accent text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold">
+                    <Crown className="w-4 h-4" />
+                    Featured Artist
+                  </div>
+                )}
+              </div>
               
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center gap-1">
@@ -190,50 +200,75 @@ export default function ArtistProfile() {
               </div>
 
               {/* Contact Info */}
-              <div className="space-y-2 mb-6">
-                {artist.address && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{artist.address}, {artist.city}, {artist.state} {artist.zipCode}</span>
-                  </div>
-                )}
-                {artist.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <a href={`tel:${artist.phone}`} className="hover:text-primary">{artist.phone}</a>
-                  </div>
-                )}
-                {artist.website && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Globe className="w-4 h-4 text-muted-foreground" />
-                    <a href={artist.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                      Website
-                    </a>
-                  </div>
-                )}
-              </div>
+              {getTierLimits(artist.subscriptionTier as "free" | "premium").canShowDirectContact ? (
+                <div className="space-y-2 mb-6">
+                  {artist.address && getTierLimits(artist.subscriptionTier as "free" | "premium").showExactLocation && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{artist.address}, {artist.city}, {artist.state} {artist.zipCode}</span>
+                    </div>
+                  )}
+                  {artist.city && !getTierLimits(artist.subscriptionTier as "free" | "premium").showExactLocation && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{artist.city}, {artist.state}</span>
+                    </div>
+                  )}
+                  {artist.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <a href={`tel:${artist.phone}`} className="hover:text-primary">{artist.phone}</a>
+                    </div>
+                  )}
+                  {artist.website && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <a href={artist.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                        Website
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-6">
+                  <UpgradePrompt
+                    feature="Direct Contact Information"
+                    description="Upgrade to Premium to display your contact information and website to customers."
+                    inline
+                  />
+                </div>
+              )}
 
               {/* Social Links */}
-              <div className="flex gap-4 mb-6">
-                {artist.instagram && (
-                  <a href={artist.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                    <Instagram className="w-5 h-5" />
-                  </a>
-                )}
-                {artist.facebook && (
-                  <a href={artist.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                    <Facebook className="w-5 h-5" />
-                  </a>
-                )}
-              </div>
+              {getTierLimits(artist.subscriptionTier as "free" | "premium").canShowDirectContact ? (
+                <div className="flex gap-4 mb-6">
+                  {artist.instagram && (
+                    <a href={artist.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                      <Instagram className="w-5 h-5" />
+                    </a>
+                  )}
+                  {artist.facebook && (
+                    <a href={artist.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                      <Facebook className="w-5 h-5" />
+                    </a>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 w-full md:w-auto md:min-w-[200px]">
-              <Button size="lg" className="w-full" onClick={handleBookNow}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Book Appointment
-              </Button>
+              {getTierLimits(artist.subscriptionTier as "free" | "premium").canAcceptBookings ? (
+                <Button size="lg" className="w-full" onClick={handleBookNow}>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Book Appointment
+                </Button>
+              ) : (
+                <UpgradePrompt
+                  feature="Booking Appointments"
+                  description="Upgrade to Premium to start accepting bookings from customers."
+                />
+              )}
               <Button
                 size="lg"
                 variant="outline"
@@ -376,6 +411,8 @@ export default function ArtistProfile() {
                     onHelpfulClick={(reviewId) => {
                       toast.success("Thanks for your feedback!");
                     }}
+                    artistTier={artist.subscriptionTier as "free" | "premium"}
+                    isArtistOwner={user?.role === "artist" && user?.id === artist.userId}
                   />
                 ))}
             </div>

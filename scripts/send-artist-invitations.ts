@@ -1,7 +1,5 @@
-import { getDb } from "../server/db";
+import { getAllArtistEmails } from "../server/db";
 import { sendArtistInvitation } from "../server/email";
-import { users, artists } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
 
 /**
  * Send invitation emails to all Louisiana tattoo shops with email addresses
@@ -9,20 +7,8 @@ import { eq } from "drizzle-orm";
 async function sendInvitations() {
   console.log("🚀 Starting artist invitation campaign...\n");
 
-  const db = await getDb();
-
-  // Get all artists with their user email addresses
-  const artistsWithEmails = await db
-    .select({
-      artistId: artists.id,
-      shopName: artists.shopName,
-      location: artists.city,
-      email: users.email,
-      userName: users.name,
-    })
-    .from(artists)
-    .leftJoin(users, eq(artists.userId, users.id))
-    .where(eq(users.email, users.email)); // Filter out null emails
+  // Get all artists with their email addresses
+  const artistsWithEmails = await getAllArtistEmails();
 
   console.log(`Found ${artistsWithEmails.length} artists with email addresses\n`);
 
