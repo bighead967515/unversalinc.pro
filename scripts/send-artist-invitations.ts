@@ -1,7 +1,7 @@
 import { getDb } from "../server/db";
 import { sendArtistInvitation } from "../server/email";
 import { users, artists } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 
 /**
  * Send invitation emails to all Louisiana tattoo shops with email addresses
@@ -22,7 +22,7 @@ async function sendInvitations() {
     })
     .from(artists)
     .leftJoin(users, eq(artists.userId, users.id))
-    .where(eq(users.email, users.email)); // Filter out null emails
+    .where(isNotNull(users.email)); // Filter out artists without an associated user email
 
   console.log(`Found ${artistsWithEmails.length} artists with email addresses\n`);
 
