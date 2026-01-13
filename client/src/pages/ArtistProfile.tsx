@@ -29,11 +29,11 @@ export default function ArtistProfile() {
   const [sortBy, setSortBy] = useState<"recent" | "highest" | "helpful">("recent");
 
   const { data: artist, isLoading: artistLoading } = trpc.artists.getById.useQuery({ id: artistId });
-  const { data: portfolio, isLoading: portfolioLoading } = trpc.portfolio.getByArtistId.useQuery({ artistId });
+  const { data: portfolio, isLoading: portfolioLoading } = trpc.portfolio.get.useQuery({ artistId });
   const { data: reviews, isLoading: reviewsLoading, refetch: refetchReviews } = trpc.reviews.getByArtistId.useQuery({ artistId });
   const { data: isFav, refetch: refetchFavorite } = trpc.favorites.isFavorite.useQuery(
     { artistId },
-    { enabled: isAuthenticated }
+    { enabled: !!user }
   );
 
   const addFavoriteMutation = trpc.favorites.add.useMutation({

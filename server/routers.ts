@@ -96,7 +96,7 @@ export const appRouter = router({
   }),
 
   portfolio: router({
-    getByArtistId: publicProcedure
+    get: publicProcedure
       .input(z.object({ artistId: z.number() }))
       .query(async ({ input }) => {
         return await db.getPortfolioByArtistId(input.artistId);

@@ -176,25 +176,25 @@
 - [x] Create shared tier limits constants file
 - [x] Create UpgradePrompt component for restrictions
 - [x] Create pricing/upgrade page with tier comparison
-- [ ] Limit portfolio images to 3 for free tier artists (UI enforcement)
-- [ ] Disable booking button for free tier artists (display "Upgrade to Enable Booking")
-- [ ] Disable direct contact info for free tier (show upgrade prompt)
-- [ ] Disable artist review responses for free tier
-- [ ] Hide analytics/leads dashboard for free tier
-- [ ] Show general location only for free tier (hide exact map pin)
-- [ ] Add "Featured Artist" badge for premium tier
-- [ ] Add upgrade prompts throughout artist dashboard
-- [ ] Implement Stripe subscription for premium tier upgrades
-- [ ] Update artist seeding to include tier information
+- [x] Limit portfolio images to 3 for free tier artists (UI enforcement)
+- [x] Disable booking button for free tier artists (display "Upgrade to Enable Booking")
+- [x] Disable direct contact info for free tier (show upgrade prompt)
+- [x] Disable artist review responses for free tier
+- [x] Hide analytics/leads dashboard for free tier
+- [x] Show general location only for free tier (hide exact map pin)
+- [x] Add "Featured Artist" badge for premium tier
+- [x] Add upgrade prompts throughout artist dashboard
+- [x] Implement Stripe subscription for premium tier upgrades
+- [x] Update artist seeding to include tier information
 
 ## Email Service Integration
-- [ ] Install Resend email package
-- [ ] Add RESEND_API_KEY to environment variables
-- [ ] Create email utility functions for sending emails
-- [ ] Create artist invitation email template
-- [ ] Create booking confirmation email template
-- [ ] Create payment receipt email template
-- [ ] Extract shop emails from database
-- [ ] Send invitation campaign to Louisiana shops
-- [ ] Add email logging/tracking
-- [ ] Add unsubscribe functionality for compliance
+- [x] Install Resend email package
+- [x] Add RESEND_API_KEY to environment variables
+- [x] Create email utility functions for sending emails
+- [x] Create artist invitation email template
+- [x] Create booking confirmation email template
+- [x] Create payment receipt email template
+- [x] Extract shop emails from database
+- [x] Send invitation campaign to Louisiana shops
+- [x] Add email logging/tracking
+- [x] Add unsubscribe functionality for compliance

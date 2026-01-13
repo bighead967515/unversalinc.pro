@@ -46,7 +46,7 @@ export default function BookingDialog({
     onSuccess: async (data) => {
       // Create Stripe checkout session
       const checkoutResult = await createCheckoutMutation.mutateAsync({
-        bookingId: data[0].insertId,
+        bookingId: data.insertId,
       });
 
       if (checkoutResult.url) {
